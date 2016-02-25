@@ -65,6 +65,9 @@ void AC_Circle::init(const Vector3f& center)
 
     // initialise angular velocity
     _angular_vel = 0;
+
+    // set starting angle to current heading - 180 degrees
+    _angle = wrap_PI(_ahrs.yaw-PI);
 }
 
 /// init - initialise circle controller setting center using stopping point and projecting out based on the copter's heading
@@ -94,6 +97,9 @@ void AC_Circle::init()
 
     // initialise angular velocity
     _angular_vel = 0;
+
+    // set starting angle to current heading - 180 degrees
+    _angle = wrap_PI(_ahrs.yaw-PI);
 }
 
 /// update - update circle controller
@@ -200,9 +206,6 @@ void AC_Circle::calc_velocities()
         _angular_vel_max = ToRad(_rate);
         _angular_accel = _angular_vel_max;  // reach maximum yaw velocity in 1 second
     }else{
-        // set starting angle to current heading - 180 degrees
-        _angle = wrap_PI(_ahrs.yaw-PI);
-
         // calculate max velocity based on waypoint speed ensuring we do not use more than half our max acceleration for accelerating towards the center of the circle
         float velocity_max = min(_pos_control.get_speed_xy(), safe_sqrt(0.5f*_pos_control.get_accel_xy()*_radius));
 
