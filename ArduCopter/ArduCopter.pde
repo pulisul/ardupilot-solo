@@ -905,6 +905,20 @@ static void fast_loop()
     update_heli_control_dynamics();
 #endif //HELI_FRAME
 
+    if (control_mode == ALT_HOLD) {
+        switch((millis()/2000) % 5) {
+            case 0:
+                motors.set_yaw(4500);
+                break;
+            case 1:
+                motors.set_yaw(-4500);
+                break;
+            case 2:
+                motors.set_yaw(4500);
+                break;
+        }
+    }
+    
     // send outputs to the motors library
     motors_output();
 
