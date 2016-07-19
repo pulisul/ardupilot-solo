@@ -4967,10 +4967,15 @@ void  NavEKF::getFilterStatus(nav_filter_status &status) const
 /*
 return filter gps quality check status
 */
-void  NavEKF::getFilterGpsStatus(uint16_t &gpsFails) const
+void  NavEKF::getFilterGpsStatus(uint16_t &gpsFails, float &vertVelDiff, float &saccFilt, float &posDriftRate, float &vertVelFilt, float &horizVelFilt) const
 {
     // init return value
     gpsFails = gpsCheckStatus.value;
+    vertVelDiff = velDiffAbs;
+    saccFilt = gpsSpdAccuracy;
+    posDriftRate = driftRate;
+    vertVelFilt = gpsVertVelFilt;
+    horizVelFilt = gpsHorizVelFilt;
 }
 
 // send an EKF_STATUS message to GCS
@@ -5249,7 +5254,6 @@ void NavEKF::setTouchdownExpected(bool val)
 bool NavEKF::calcGpsGoodToAlign(void)
 {
     // calculate absolute difference between GPS vert vel and inertial vert vel
-    float velDiffAbs;
     if (_ahrs->get_gps().have_vertical_velocity()) {
         velDiffAbs = fabsf(velNED.z - state.velocity.z);
     } else {
@@ -5361,7 +5365,7 @@ bool NavEKF::calcGpsGoodToAlign(void)
     // Clamp the fiter state to prevent excessive persistence of large transients
     gpsDriftNE = fminf(gpsDriftNE,10.0f);
     // Fail if position is not stable
-    float driftRate = gpsDriftNE/posFiltTimeConst;
+    driftRate = gpsDriftNE/posFiltTimeConst;
     bool gpsDriftFail = (driftRate > _gpsPosDriftLim) && !vehicleArmed && (_gpsCheck & MASK_GPS_POS_DRIFT);
     if (gpsDriftFail) {
         hal.util->snprintf(prearm_fail_string,

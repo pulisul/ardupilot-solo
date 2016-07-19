@@ -255,10 +255,11 @@ public:
     /*
     return filter gps quality check status
     */
-    void  getFilterGpsStatus(uint16_t &gpsFails) const;
+    void  getFilterGpsStatus(uint16_t &gpsFails, float &vertVelDiff, float &saccFilt, float &posDriftRate, float &vertVelFilt, float &horizVelFilt) const;
 
     // send an EKF_STATUS_REPORT message to GCS
     void send_status_report(mavlink_channel_t chan);
+
     // send a GPS_ACCURACY message to GCS
     void send_gps_accuracy(mavlink_channel_t chan);
 
@@ -692,7 +693,6 @@ private:
     bool prevVehicleArmed;          // vehicleArmed from previous frame
     struct Location EKF_origin;     // LLH origin of the NED axis system - do not change unless filter is reset
     bool validOrigin;               // true when the EKF origin is valid
-    float gpsSpdAccuracy;           // estimated speed accuracy in m/s returned by the UBlox GPS receiver
     uint32_t lastGpsVelFail_ms;     // time of last GPS vertical velocity consistency check fail
     Vector3f lastMagOffsets;        // magnetometer offsets returned by compass object from previous update
     bool gpsAidingBad;              // true when GPS position measurements have been consistently rejected by the filter
@@ -703,9 +703,6 @@ private:
     bool gpsGoodToAlign;            // true when GPS quality is good enough to set an EKF origin and commence GPS navigation
     bool gpsAccuracyGood;           // true when the GPS accuracy is considered to be good enough for safe flight.
     uint32_t timeAtDisarm_ms;       // time of last disarm event in msec
-    float gpsDriftNE;               // amount of drift detected in the GPS position during pre-flight GPs checks
-    float gpsVertVelFilt;           // amount of filterred vertical GPS velocity detected durng pre-flight GPS checks
-    float gpsHorizVelFilt;          // amount of filtered horizontal GPS velocity detected during pre-flight GPS checks
     uint32_t magYawResetTimer_ms;   // timer in msec used to track how long good magnetometer data is failing innovation consistency checks
     bool consistentMagData;         // true when the magnetometers are passing consistency checks
     float hgtInnovFiltState;        // state used for fitering of the height innovations used for pre-flight checks
@@ -796,6 +793,14 @@ private:
     AidingMode PV_AidingMode;           // Defines the preferred mode for aiding of velocity and position estimates from the INS
     bool gndOffsetValid;            // true when the ground offset state can still be considered valid
     bool flowXfailed;               // true when the X optical flow measurement has failed the innovation consistency check
+
+    // GPS checks
+    float velDiffAbs;               // Absolute difference between EKF and GPS vertical velocity (m/s)
+    float gpsSpdAccuracy;           // GPS receiver reported speed accuracy after filtering (m/s)
+    float driftRate;                // GPS horizontal position drift rate (m/s)
+    float gpsDriftNE;               // amount of drift detected in the GPS position during pre-flight GPs checks (m)
+    float gpsVertVelFilt;           // amount of filtered vertical GPS velocity detected durng pre-flight GPS checks (m/s)
+    float gpsHorizVelFilt;          // amount of filtered horizontal GPS velocity detected during pre-flight GPS checks (m/s)
 
     // Range finder
     float baroHgtOffset;            // offset applied when baro height used as a backup height reference if range-finder fails
