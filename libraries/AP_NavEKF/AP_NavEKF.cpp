@@ -4917,6 +4917,27 @@ void  NavEKF::getFilterStatus(nav_filter_status &status) const
     status.flags.gps_glitching = !gpsAccuracyGood; // The GPS is glitching
 }
 
+/*
+return filter gps quality check status
+*/
+void  NavEKF::getFilterGpsStatus(nav_gps_status &faults) const
+{
+    // init return value
+    faults.value = 0;
+
+    // set individual flags
+    faults.flags.bad_sAcc           = gpsCheckStatus.bad_sAcc; // reported speed accuracy is insufficient
+    faults.flags.bad_hAcc           = gpsCheckStatus.bad_hAcc; // reported horizontal position accuracy is insufficient
+    faults.flags.bad_yaw            = gpsCheckStatus.bad_yaw; // EKF heading accuracy is too large for GPS use
+    faults.flags.bad_sats           = gpsCheckStatus.bad_sats; // reported number of satellites is insufficient
+    faults.flags.bad_VZ             = gpsCheckStatus.bad_VZ; // GPS vertical velocity is inconsistent with the IMU and Baro measurements
+    faults.flags.bad_horiz_drift    = gpsCheckStatus.bad_horiz_drift; // GPS horizontal drift is too large to start using GPS (check assumes vehicle is static)
+    faults.flags.bad_hdop           = gpsCheckStatus.bad_hdop; // reported HDoP is too large to start using GPS
+    faults.flags.bad_vert_vel       = gpsCheckStatus.bad_vert_vel; // GPS vertical speed is too large to start using GPS (check assumes vehicle is static)
+    faults.flags.bad_fix            = gpsCheckStatus.bad_fix; // The GPS cannot provide the 3D fix required
+    faults.flags.bad_horiz_vel      = gpsCheckStatus.bad_horiz_vel; // The GPS horizontal speed is excessive (check assumes the vehicle is static)
+}
+
 // send an EKF_STATUS message to GCS
 void NavEKF::send_status_report(mavlink_channel_t chan)
 {
@@ -4924,19 +4945,31 @@ void NavEKF::send_status_report(mavlink_channel_t chan)
     nav_filter_status filt_state;
     getFilterStatus(filt_state);
 
-    // prepare flags
-    uint16_t flags = 0;
-    if (filt_state.flags.attitude) { flags |= EKF_ATTITUDE; }
-    if (filt_state.flags.horiz_vel) { flags |= EKF_VELOCITY_HORIZ; }
-    if (filt_state.flags.vert_vel) { flags |= EKF_VELOCITY_VERT; }
-    if (filt_state.flags.horiz_pos_rel) { flags |= EKF_POS_HORIZ_REL; }
-    if (filt_state.flags.horiz_pos_abs) { flags |= EKF_POS_HORIZ_ABS; }
-    if (filt_state.flags.vert_pos) { flags |= EKF_POS_VERT_ABS; }
-    if (filt_state.flags.terrain_alt) { flags |= EKF_POS_VERT_AGL; }
-    if (filt_state.flags.const_pos_mode) { flags |= EKF_CONST_POS_MODE; }
-    if (filt_state.flags.pred_horiz_pos_rel) { flags |= EKF_PRED_POS_HORIZ_REL; }
-    if (filt_state.flags.pred_horiz_pos_abs) { flags |= EKF_PRED_POS_HORIZ_ABS; }
-    if (filt_state.flags.gps_glitching) { flags |= (1<<15); }
+    // prepare ekf solution status flags
+    uint16_t ekfFlags = 0;
+    if (filt_state.flags.attitude) { ekfFlags |= EKF_ATTITUDE; }
+    if (filt_state.flags.horiz_vel) { ekfFlags |= EKF_VELOCITY_HORIZ; }
+    if (filt_state.flags.vert_vel) { ekfFlags |= EKF_VELOCITY_VERT; }
+    if (filt_state.flags.horiz_pos_rel) { ekfFlags |= EKF_POS_HORIZ_REL; }
+    if (filt_state.flags.horiz_pos_abs) { ekfFlags |= EKF_POS_HORIZ_ABS; }
+    if (filt_state.flags.vert_pos) { ekfFlags |= EKF_POS_VERT_ABS; }
+    if (filt_state.flags.terrain_alt) { ekfFlags |= EKF_POS_VERT_AGL; }
+    if (filt_state.flags.const_pos_mode) { ekfFlags |= EKF_CONST_POS_MODE; }
+    if (filt_state.flags.pred_horiz_pos_rel) { ekfFlags |= EKF_PRED_POS_HORIZ_REL; }
+    if (filt_state.flags.pred_horiz_pos_abs) { ekfFlags |= EKF_PRED_POS_HORIZ_ABS; }
+    if (filt_state.flags.gps_glitching) { ekfFlags |= (1<<15); }
+
+    // prepare ekf GPS check status flags
+    uint16_t gpsFlags = 0;
+    if (gpsCheckStatus.bad_sAcc) { gpsFlags |= 1<<0; }
+    if (gpsCheckStatus.bad_hAcc) { gpsFlags |= 1<<1; }
+    if (gpsCheckStatus.bad_yaw) { gpsFlags |= 1<<2; }
+    if (gpsCheckStatus.bad_sats) { gpsFlags |= 1<<3; }
+    if (gpsCheckStatus.bad_VZ) { gpsFlags |= 1<<4; }
+    if (gpsCheckStatus.bad_horiz_drift) { gpsFlags |= 1<<5; }
+    if (gpsCheckStatus.bad_hdop) { gpsFlags |= 1<<6; }
+    if (gpsCheckStatus.bad_fix) { gpsFlags |= 1<<7; }
+    if (gpsCheckStatus.bad_horiz_vel) { gpsFlags |= 1<<8; }
 
     // get variances
     float velVar, posVar, hgtVar, tasVar;
@@ -4945,7 +4978,7 @@ void NavEKF::send_status_report(mavlink_channel_t chan)
     getVariances(velVar, posVar, hgtVar, magVar, tasVar, offset);
 
     // send message
-    mavlink_msg_ekf_status_report_send(chan, flags, velVar, posVar, hgtVar, magVar.length(), tasVar);
+    mavlink_msg_ekf_status_report_send(chan, ekfFlags, velVar, posVar, hgtVar, magVar.length(), tasVar, gpsFlags);
 
 }
 

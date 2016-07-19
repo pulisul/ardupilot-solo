@@ -252,6 +252,11 @@ public:
     */
     void  getFilterStatus(nav_filter_status &status) const;
 
+    /*
+    return filter gps quality check status
+    */
+    void  getFilterGpsStatus(nav_gps_status &status) const;
+
     // send an EKF_STATUS_REPORT message to GCS
     void send_status_report(mavlink_channel_t chan);
     // send a GPS_ACCURACY message to GCS
