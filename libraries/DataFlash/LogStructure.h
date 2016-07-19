@@ -229,6 +229,7 @@ struct PACKED log_EKF3 {
     int16_t innovMY;
     int16_t innovMZ;
     int16_t innovVT;
+    int16_t gpsChecks;
 };
 
 struct PACKED log_EKF4 {
@@ -545,7 +546,7 @@ Format characters in the format string for binary log messages
     { LOG_EKF2_MSG, sizeof(log_EKF2), \
       "EKF2","Ibbbcchhhhhh","TimeMS,Ratio,AZ1bias,AZ2bias,VWN,VWE,MN,ME,MD,MX,MY,MZ" }, \
     { LOG_EKF3_MSG, sizeof(log_EKF3), \
-      "EKF3","Icccccchhhc","TimeMS,IVN,IVE,IVD,IPN,IPE,IPD,IMX,IMY,IMZ,IVT" }, \
+      "EKF3","IcccccchhhcH","TimeMS,IVN,IVE,IVD,IPN,IPE,IPD,IMX,IMY,IMZ,IVT,GS" }, \
     { LOG_EKF4_MSG, sizeof(log_EKF4), \
       "EKF4","IcccccccbbBBH","TimeMS,SV,SP,SH,SMX,SMY,SMZ,SVT,OFN,EFE,FS,TS,SS" }, \
     { LOG_TERRAIN_MSG, sizeof(log_TERRAIN), \

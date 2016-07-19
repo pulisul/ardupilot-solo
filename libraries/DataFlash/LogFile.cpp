@@ -1021,7 +1021,9 @@ void DataFlash_Class::Log_Write_EKF(AP_AHRS_NavEKF &ahrs, bool optFlowEnabled)
     Vector3f posInnov;
     Vector3f magInnov;
     float tasInnov;
+    uint16_t gpsCheckStatus;
     ahrs.get_NavEKF().getInnovations(velInnov, posInnov, magInnov, tasInnov);
+    ahrs.get_NavEKF().getFilterGpsStatus(gpsCheckStatus);
     struct log_EKF3 pkt3 = {
         LOG_PACKET_HEADER_INIT(LOG_EKF3_MSG),
         time_ms : hal.scheduler->millis(),
@@ -1034,7 +1036,8 @@ void DataFlash_Class::Log_Write_EKF(AP_AHRS_NavEKF &ahrs, bool optFlowEnabled)
         innovMX : (int16_t)(magInnov.x),
         innovMY : (int16_t)(magInnov.y),
         innovMZ : (int16_t)(magInnov.z),
-        innovVT : (int16_t)(100*tasInnov)
+        innovVT : (int16_t)(100*tasInnov),
+        gpsChecks : (int16_t)(gpsCheckStatus)
     };
     WriteBlock(&pkt3, sizeof(pkt3));
 
