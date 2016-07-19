@@ -255,7 +255,7 @@ public:
     /*
     return filter gps quality check status
     */
-    void  getFilterGpsStatus(nav_gps_status &status) const;
+    void  getFilterGpsStatus(uint16_t &gpsFails) const;
 
     // send an EKF_STATUS_REPORT message to GCS
     void send_status_report(mavlink_channel_t chan);
@@ -870,18 +870,7 @@ private:
     char prearm_fail_string[40];
 
     // flags indicating which GPS quality checks are failing
-    struct {
-        bool bad_sAcc:1;
-        bool bad_hAcc:1;
-        bool bad_yaw:1;
-        bool bad_sats:1;
-        bool bad_VZ:1;
-        bool bad_horiz_drift:1;
-        bool bad_hdop:1;
-        bool bad_vert_vel:1;
-        bool bad_fix:1;
-        bool bad_horiz_vel:1;
-    } gpsCheckStatus;
+    nav_gps_status gpsCheckStatus;
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     // performance counters
