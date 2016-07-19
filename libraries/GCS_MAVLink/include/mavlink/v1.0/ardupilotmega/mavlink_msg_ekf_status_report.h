@@ -168,7 +168,7 @@ static inline uint16_t mavlink_msg_ekf_status_report_encode_chan(uint8_t system_
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-static inline void mavlink_msg_ekf_status_report_send(mavlink_channel_t chan, uint16_t flags, float velocity_variance, float pos_horiz_variance, float pos_vert_variance, float compass_variance, float terrain_alt_variance)
+static inline void mavlink_msg_ekf_status_report_send(mavlink_channel_t chan, uint16_t flags, float velocity_variance, float pos_horiz_variance, float pos_vert_variance, float compass_variance, float terrain_alt_variance, uint16_t gps_flags)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[MAVLINK_MSG_ID_EKF_STATUS_REPORT_LEN];
@@ -209,7 +209,7 @@ static inline void mavlink_msg_ekf_status_report_send(mavlink_channel_t chan, ui
   is usually the receive buffer for the channel, and allows a reply to an
   incoming message with minimum stack space usage.
  */
-static inline void mavlink_msg_ekf_status_report_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint16_t flags, float velocity_variance, float pos_horiz_variance, float pos_vert_variance, float compass_variance, float terrain_alt_variance)
+static inline void mavlink_msg_ekf_status_report_send_buf(mavlink_message_t *msgbuf, mavlink_channel_t chan,  uint16_t flags, float velocity_variance, float pos_horiz_variance, float pos_vert_variance, float compass_variance, float terrain_alt_variance, uint16_t gps_flags)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char *buf = (char *)msgbuf;
