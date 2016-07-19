@@ -1202,6 +1202,7 @@
         <field name="pos_vert_variance" type="float">Vertical Position variance</field>
         <field name="compass_variance" type="float">Compass variance</field>
         <field name="terrain_alt_variance" type="float">Terrain Altitude variance</field>
+        <field name="gps_flags" type="uint16_t">GPS flags</field>
     </message>
 
     <message name="GIMBAL_REPORT" id="200">
