@@ -517,7 +517,7 @@ private:
     AP_Int8 _altSource;             // Primary alt source during optical flow navigation. 0 = use Baro, 1 = use range finder.
     AP_Int8 _gpsCheck;              // Bitmask controlling which preflight GPS checks are bypassed
     AP_Int8 _gpsSatsLim;            // Minimum number of GPS satellites allowed druing pre-flight checks
-    AP_Float _gpsHdopLim;           // Maximum reported GPS HDoP allowed during pre-flight checks
+    AP_Int16 _gpsHdopLim;           // Maximum reported GPS HDoP percentage allowed during pre-flight checks
     AP_Float _gpsSpdErrLim;         // Maximum reported GPS speed error allowed during pre-flight checks (m/s)
     AP_Float _gpsPosErrLim;         // Maximum reported GPS horizontal position error allowed during pre-flight checks (m)
     AP_Float _gpsPosDriftLim;       // Maximum measured GPS horizontal position drift rate allowed during pre-flight checks (m/s)

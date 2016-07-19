@@ -391,10 +391,10 @@ const AP_Param::GroupInfo NavEKF::var_info[] PROGMEM = {
 
     // @Param: GPS_LIM_HDOP
     // @DisplayName: Maximum allowed GPS HDoP
-    // @Description: Maximum reported GPS HDoP allowed during pre-flight checks
-    // @Range: 1.0 - 2.5
+    // @Description: Maximum reported GPS HDoP percentage allowed during pre-flight checks
+    // @Range: 100 - 250
     // @User: Advanced
-    AP_GROUPINFO("GPS_LIM_HDOP", 35, NavEKF, _gpsHdopLim, 2.5f),
+    AP_GROUPINFO("GPS_LIM_HDOP", 35, NavEKF, _gpsHdopLim, 250),
 
     // @Param: GPS_LIM_SERR
     // @DisplayName: Maximum allowed GPS speed error
@@ -5288,10 +5288,10 @@ bool NavEKF::calcGpsGoodToAlign(void)
     }
 
     // fail if satellite geometry is poor
-    bool hdopFail = (_ahrs->get_gps().get_hdop() > 170)  && (_gpsCheck & MASK_GPS_HDOP);
+    bool hdopFail = (_ahrs->get_gps().get_hdop() > _gpsHdopLim)  && (_gpsCheck & MASK_GPS_HDOP);
     if (hdopFail) {
         hal.util->snprintf(prearm_fail_string, sizeof(prearm_fail_string),
-                           "GPS GDOP %.1f (needs 2.5)", (double)(0.01f * _ahrs->get_gps().get_hdop()));
+                           "GPS HDOP %i (needs %i)", (int)_ahrs->get_gps().get_hdop(), (int)_gpsHdopLim);
         gpsCheckStatus.flags.bad_hdop = true;
     } else {
         gpsCheckStatus.flags.bad_hdop = false;
