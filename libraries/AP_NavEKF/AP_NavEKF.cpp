@@ -380,18 +380,60 @@ const AP_Param::GroupInfo NavEKF::var_info[] PROGMEM = {
     // @Description: 1 byte bitmap of GPS preflight checks to perform. Set to 0 to bypass all checks. Set to 255 perform all checks. Set to 3 to check just the number of satellites and HDoP. Set to 31 for the most rigorous checks that will still allow checks to pass when the copter is moving, eg launch from a boat.
     // @Bitmask: 0:NSats,1:HDoP,2:speed error,3:horiz pos error,4:yaw error,5:pos drift,6:vert speed,7:horiz speed
     // @User: Advanced
-    AP_GROUPINFO("GPS_CHECK",    33, NavEKF, _gpsCheck, 31),
+    AP_GROUPINFO("GPS_CHECK",    33, NavEKF, _gpsCheck, 255),
 
-    // @Param: CHECK_SCALE
-    // @DisplayName: GPS accuracy check scaler (%)
-    // @Description: This scales the thresholds that are used to check GPS accuracy before it is used by the EKF. A value of 100 is the default. Values greater than 100 increase and values less than 100 reduce the maximum GPS error the EKF will accept. A value of 200 will double the allowable GPS error.
-    // @Range: 50 200
+    // @Param: GPS_LIM_NSAT
+    // @DisplayName: Minimum allowed GPS sat count
+    // @Description: Minimum number of GPS satellites allowed druing pre-flight checks
+    // @Range: 4 - 10
     // @User: Advanced
-    // @Units: %
-    AP_GROUPINFO("CHECK_SCALE", 34, NavEKF, _gpsCheckScaler, 100),
+    AP_GROUPINFO("GPS_LIM_NSAT", 34, NavEKF, _gpsSatsLim, 6),
+
+    // @Param: GPS_LIM_HDOP
+    // @DisplayName: Maximum allowed GPS HDoP
+    // @Description: Maximum reported GPS HDoP allowed during pre-flight checks
+    // @Range: 1.0 - 2.5
+    // @User: Advanced
+    AP_GROUPINFO("GPS_LIM_HDOP", 35, NavEKF, _gpsHdopLim, 2.5f),
+
+    // @Param: GPS_LIM_SERR
+    // @DisplayName: Maximum allowed GPS speed error
+    // @Description: Maximum reported GPS speed error allowed during pre-flight checks (m/s)
+    // @Range: 0.5 - 1.5
+    // @User: Advanced
+    AP_GROUPINFO("GPS_LIM_SERR", 36, NavEKF, _gpsSpdErrLim, 1.0f),
+
+    // @Param: GPS_LIM_HERR
+    // @DisplayName: Maximum allowed GPS horizontal position error
+    // @Description: Maximum reported GPS horizontal position error allowed during pre-flight checks (m)
+    // @Range: 1.0 - 5.0
+    // @User: Advanced
+    AP_GROUPINFO("GPS_LIM_HERR", 37, NavEKF, _gpsPosErrLim, 5.0f),
+
+    // @Param: GPS_LIM_HDFT
+    // @DisplayName: Maximum allowed horizontal position drift rate
+    // @Description: Maximum measured GPS horizontal position drift rate allowed during pre-flight checks (m/s). This check can only be used if the vehicle is stationary.
+    // @Range: 0.1 - 1.0
+    // @User: Advanced
+    AP_GROUPINFO("GPS_LIM_HDFT", 38, NavEKF, _gpsPosDriftLim, 0.3f),
+
+    // @Param: GPS_LIM_VSPD
+    // @DisplayName: Maximum allowed vertical speed
+    // @Description: Maximum measured GPS vertical speed allowed during pre-flight checks (m/s). This check can only be used if the vehicle is stationary.
+    // @Range: 0.1 - 1.0
+    // @User: Advanced
+    AP_GROUPINFO("GPS_LIM_VSPD", 39, NavEKF, _gpsVertSpdLim, 0.3f),
+
+    // @Param: GPS_LIM_HSPD
+    // @DisplayName: Maximum allowed horizontal speed
+    // @Description: Maximum measured GPS horizontal speed allowed during pre-flight checks (m/s). This check can only be used if the vehicle is stationary.
+    // @Range: 0.1 - 1.0
+    // @User: Advanced
+    AP_GROUPINFO("GPS_LIM_HSPD", 40, NavEKF, _gpsHorizSpdLim, 0.3f),
 
     AP_GROUPEND
 };
+AP_Float _gpsHorizSpdLim;       // Maximum measured GPS horizontal speed allowed during pre-flight checks (m/s)
 
 // constructor
 NavEKF::NavEKF(const AP_AHRS *ahrs, AP_Baro &baro, const RangeFinder &rng) :
@@ -4253,10 +4295,15 @@ void NavEKF::readGpsData()
     }
 
     // If no previous GPS lock or told not to use it, or EKF origin not set, we declare the  GPS unavailable for use
-    if ((_ahrs->get_gps().status() < AP_GPS::GPS_OK_FIX_3D) || _fusionModeGPS == 3 || !validOrigin) {
-        gpsNotAvailable = true;
+    if (_ahrs->get_gps().status() < AP_GPS::GPS_OK_FIX_3D) {
+        gpsCheckStatus.bad_fix = true;
+        if (_fusionModeGPS == 3 || !validOrigin) {
+            gpsNotAvailable = true;
+        } else {
+            gpsNotAvailable = false;
+        }
     } else {
-        gpsNotAvailable = false;
+        gpsCheckStatus.bad_fix = false;
     }
 }
 
@@ -5213,9 +5260,6 @@ void NavEKF::setTouchdownExpected(bool val)
 */
 bool NavEKF::calcGpsGoodToAlign(void)
 {
-    // User defined multiplier to be applied to check thresholds
-    float checkScaler = 0.01f*(float)_gpsCheckScaler;
-
     // calculate absolute difference between GPS vert vel and inertial vert vel
     float velDiffAbs;
     if (_ahrs->get_gps().have_vertical_velocity()) {
@@ -5225,20 +5269,21 @@ bool NavEKF::calcGpsGoodToAlign(void)
     }
 
     // fail if velocity difference or reported speed accuracy greater than threshold
-    bool gpsVelFail = ((velDiffAbs > 1.0f) || (gpsSpdAccuracy > 1.0f*checkScaler)) && (_gpsCheck & MASK_GPS_SPD_ERR);
+    bool gpsVelFail = ((velDiffAbs > _gpsSpdErrLim) || (gpsSpdAccuracy > _gpsSpdErrLim)) && (_gpsCheck & MASK_GPS_SPD_ERR);
 
     if (velDiffAbs > 1.0f) {
         hal.util->snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
-                           "GPS vert vel error %.1f", (double)velDiffAbs);
+                           "vert vel inconsistency %.1f (needs %.1f)", (double)velDiffAbs, (double)_gpsSpdErrLim);
         gpsCheckStatus.bad_VZ = true;
     } else {
         gpsCheckStatus.bad_VZ = false;
     }
+
     if (gpsSpdAccuracy > 1.0f) {
         hal.util->snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
-                           "GPS speed error %.1f", (double)gpsSpdAccuracy);
+                           "GPS speed error %.1f (needs %.1f)", (double)gpsSpdAccuracy, (double)_gpsSpdErrLim);
         gpsCheckStatus.bad_sAcc = true;
     } else {
         gpsCheckStatus.bad_sAcc = false;
@@ -5268,14 +5313,14 @@ bool NavEKF::calcGpsGoodToAlign(void)
     float hAcc = 0.0f;
     bool hAccFail;
     if (_ahrs->get_gps().horizontal_accuracy(hAcc)) {
-        hAccFail = (hAcc > 5.0f*checkScaler)  && (_gpsCheck & MASK_GPS_POS_ERR);
+        hAccFail = (hAcc > _gpsPosErrLim)  && (_gpsCheck & MASK_GPS_POS_ERR);
     } else {
         hAccFail =  false;
     }
     if (hAccFail) {
         hal.util->snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
-                           "GPS horiz error %.1f", (double)hAcc, (double)(5.0f*checkScaler));
+                           "GPS horiz error %.1f", (double)hAcc, (double)(_gpsPosErrLim));
         gpsCheckStatus.bad_hAcc = true;
     } else {
         gpsCheckStatus.bad_hAcc = false;
@@ -5327,13 +5372,13 @@ bool NavEKF::calcGpsGoodToAlign(void)
     gpsDriftNE *= (1.0f - deltaTime/posFiltTimeConst);
     // Clamp the fiter state to prevent excessive persistence of large transients
     gpsDriftNE = fminf(gpsDriftNE,10.0f);
-    // Fail if more than 3 metres drift after filtering whilst pre-armed when the vehicle is supposed to be stationary
-    // This corresponds to a maximum acceptable average drift rate of 0.3 m/s or single glitch event of 3m
-    bool gpsDriftFail = (gpsDriftNE > 3.0f*checkScaler) && !vehicleArmed && (_gpsCheck & MASK_GPS_POS_DRIFT);
+    // Fail if position is not stable
+    float driftRate = gpsDriftNE/posFiltTimeConst;
+    bool gpsDriftFail = (driftRate > _gpsPosDriftLim) && !vehicleArmed && (_gpsCheck & MASK_GPS_POS_DRIFT);
     if (gpsDriftFail) {
         hal.util->snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
-                           "GPS drift %.1fm (needs %.1f)", (double)gpsDriftNE, (double)(3.0f*checkScaler));
+                           "GPS drift %.1fm (needs %.1f)", (double)driftRate, (double)_gpsPosDriftLim);
         gpsCheckStatus.bad_horiz_drift = true;
     } else {
         gpsCheckStatus.bad_horiz_drift = false;
@@ -5345,7 +5390,7 @@ bool NavEKF::calcGpsGoodToAlign(void)
         // check that the average vertical GPS velocity is close to zero
         gpsVertVelFilt = 0.1f * velNED.z + 0.9f * gpsVertVelFilt;
         gpsVertVelFilt = constrain_float(gpsVertVelFilt,-10.0f,10.0f);
-        gpsVertVelFail = (fabsf(gpsVertVelFilt) > 0.3f*checkScaler) && (_gpsCheck & MASK_GPS_VERT_SPD);
+        gpsVertVelFail = (fabsf(gpsVertVelFilt) > _gpsVertSpdLim) && (_gpsCheck & MASK_GPS_VERT_SPD);
     } else if ((_fusionModeGPS == 0) && !_ahrs->get_gps().have_vertical_velocity()) {
         // If the EKF settings require vertical GPS velocity and the receiver is not outputting it, then fail
         gpsVertVelFail = true;
@@ -5355,7 +5400,7 @@ bool NavEKF::calcGpsGoodToAlign(void)
     if (gpsVertVelFail) {
         hal.util->snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
-                           "GPS vertical speed %.2fm/s (needs %.2f)", (double)fabsf(gpsVertVelFilt),(double)(0.3f*checkScaler));
+                           "GPS vertical speed %.2fm/s (needs %.2f)", (double)fabsf(gpsVertVelFilt),(double)_gpsVertSpdLim);
         gpsCheckStatus.bad_vert_vel = true;
     } else {
         gpsCheckStatus.bad_vert_vel = false;
@@ -5366,14 +5411,14 @@ bool NavEKF::calcGpsGoodToAlign(void)
     if (!vehicleArmed) {
         gpsHorizVelFilt = 0.1f * sqrtf(sq(velNED.x)+sq(velNED.y)) + 0.9f * gpsHorizVelFilt;
         gpsHorizVelFilt = constrain_float(gpsHorizVelFilt,-10.0f,10.0f);
-        gpsHorizVelFail = (fabsf(gpsHorizVelFilt) > 0.3f*checkScaler) && (_gpsCheck & MASK_GPS_HORIZ_SPD);
+        gpsHorizVelFail = (fabsf(gpsHorizVelFilt) > _gpsHorizSpdLim) && (_gpsCheck & MASK_GPS_HORIZ_SPD);
     } else {
         gpsHorizVelFail = false;
     }
     if (gpsHorizVelFail) {
         hal.util->snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
-                           "GPS horizontal speed %.2fm/s (needs %.2f)", (double)gpsDriftNE,(double)(0.3f*checkScaler));
+                           "GPS horizontal speed %.2fm/s (needs %.2f)", (double)gpsDriftNE,(double)_gpsHorizSpdLim);
         gpsCheckStatus.bad_horiz_vel = true;
     } else {
         gpsCheckStatus.bad_horiz_vel = false;
