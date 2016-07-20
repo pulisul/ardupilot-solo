@@ -394,7 +394,7 @@ const AP_Param::GroupInfo NavEKF::var_info[] PROGMEM = {
     // @Description: Maximum reported GPS HDoP percentage allowed during pre-flight checks
     // @Range: 100 - 250
     // @User: Advanced
-    AP_GROUPINFO("GPS_LIM_HDOP", 35, NavEKF, _gpsHdopLim, 250),
+    AP_GROUPINFO("GPS_LIM_HDOP", 35, NavEKF, _gpsHdopLim, 170),
 
     // @Param: GPS_LIM_SERR
     // @DisplayName: Maximum allowed GPS speed error
