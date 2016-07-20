@@ -5263,7 +5263,7 @@ bool NavEKF::calcGpsGoodToAlign(void)
     // fail if velocity difference or reported speed accuracy greater than threshold
     bool gpsVelFail = ((velDiffAbs > _gpsSpdErrLim) || (gpsSpdAccuracy > _gpsSpdErrLim)) && (_gpsCheck & MASK_GPS_SPD_ERR);
 
-    if (velDiffAbs > 1.0f) {
+    if (velDiffAbs > _gpsSpdErrLim) {
         hal.util->snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
                            "vert vel inconsistency %.1f (needs %.1f)", (double)velDiffAbs, (double)_gpsSpdErrLim);
@@ -5272,7 +5272,7 @@ bool NavEKF::calcGpsGoodToAlign(void)
         gpsCheckStatus.flags.bad_VZ = false;
     }
 
-    if (gpsSpdAccuracy > 1.0f) {
+    if (gpsSpdAccuracy > _gpsSpdErrLim) {
         hal.util->snprintf(prearm_fail_string,
                            sizeof(prearm_fail_string),
                            "GPS speed error %.1f (needs %.1f)", (double)gpsSpdAccuracy, (double)_gpsSpdErrLim);
