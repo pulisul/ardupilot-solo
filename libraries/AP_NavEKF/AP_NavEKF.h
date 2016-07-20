@@ -870,10 +870,6 @@ private:
         Vector9 SH_MAG;
 	} mag_state;
 
-
-    // string representing last reason for prearm failure
-    char prearm_fail_string[40];
-
     // flags indicating which GPS quality checks are failing
     nav_gps_status gpsCheckStatus;
 

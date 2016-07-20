@@ -5264,18 +5264,12 @@ bool NavEKF::calcGpsGoodToAlign(void)
     bool gpsVelFail = ((velDiffAbs > _gpsSpdErrLim) || (gpsSpdAccuracy > _gpsSpdErrLim)) && (_gpsCheck & MASK_GPS_SPD_ERR);
 
     if (velDiffAbs > _gpsSpdErrLim) {
-        hal.util->snprintf(prearm_fail_string,
-                           sizeof(prearm_fail_string),
-                           "vert vel inconsistency %.1f (needs %.1f)", (double)velDiffAbs, (double)_gpsSpdErrLim);
         gpsCheckStatus.flags.bad_VZ = true;
     } else {
         gpsCheckStatus.flags.bad_VZ = false;
     }
 
     if (gpsSpdAccuracy > _gpsSpdErrLim) {
-        hal.util->snprintf(prearm_fail_string,
-                           sizeof(prearm_fail_string),
-                           "GPS speed error %.1f (needs %.1f)", (double)gpsSpdAccuracy, (double)_gpsSpdErrLim);
         gpsCheckStatus.flags.bad_sAcc = true;
     } else {
         gpsCheckStatus.flags.bad_sAcc = false;
@@ -5284,8 +5278,6 @@ bool NavEKF::calcGpsGoodToAlign(void)
     // fail if not enough sats
     bool numSatsFail = (_ahrs->get_gps().num_sats() < 6) && (_gpsCheck & MASK_GPS_NSATS);
     if (numSatsFail) {
-        hal.util->snprintf(prearm_fail_string, sizeof(prearm_fail_string),
-                           "GPS numsats %u (needs 6)", _ahrs->get_gps().num_sats());
         gpsCheckStatus.flags.bad_sats = true;
     } else {
         gpsCheckStatus.flags.bad_sats = false;
@@ -5294,8 +5286,6 @@ bool NavEKF::calcGpsGoodToAlign(void)
     // fail if satellite geometry is poor
     bool hdopFail = (_ahrs->get_gps().get_hdop() > _gpsHdopLim)  && (_gpsCheck & MASK_GPS_HDOP);
     if (hdopFail) {
-        hal.util->snprintf(prearm_fail_string, sizeof(prearm_fail_string),
-                           "GPS HDOP %i (needs %i)", (int)_ahrs->get_gps().get_hdop(), (int)_gpsHdopLim);
         gpsCheckStatus.flags.bad_hdop = true;
     } else {
         gpsCheckStatus.flags.bad_hdop = false;
@@ -5310,9 +5300,6 @@ bool NavEKF::calcGpsGoodToAlign(void)
         hAccFail =  false;
     }
     if (hAccFail) {
-        hal.util->snprintf(prearm_fail_string,
-                           sizeof(prearm_fail_string),
-                           "GPS horiz error %.1f", (double)hAcc, (double)(_gpsPosErrLim));
         gpsCheckStatus.flags.bad_hAcc = true;
     } else {
         gpsCheckStatus.flags.bad_hAcc = false;
@@ -5341,11 +5328,6 @@ bool NavEKF::calcGpsGoodToAlign(void)
         yawFail = false;
     }
     if (yawFail) {
-        hal.util->snprintf(prearm_fail_string,
-                           sizeof(prearm_fail_string),
-                           "Mag yaw error x=%.1f y=%.1f",
-                           (double)magTestRatio.x,
-                           (double)magTestRatio.y);
         gpsCheckStatus.flags.bad_yaw = true;
     } else {
         gpsCheckStatus.flags.bad_yaw = false;
@@ -5368,9 +5350,6 @@ bool NavEKF::calcGpsGoodToAlign(void)
     driftRate = gpsDriftNE/posFiltTimeConst;
     bool gpsDriftFail = (driftRate > _gpsPosDriftLim) && !vehicleArmed && (_gpsCheck & MASK_GPS_POS_DRIFT);
     if (gpsDriftFail) {
-        hal.util->snprintf(prearm_fail_string,
-                           sizeof(prearm_fail_string),
-                           "GPS drift %.1fm (needs %.1f)", (double)driftRate, (double)_gpsPosDriftLim);
         gpsCheckStatus.flags.bad_horiz_drift = true;
     } else {
         gpsCheckStatus.flags.bad_horiz_drift = false;
@@ -5390,9 +5369,6 @@ bool NavEKF::calcGpsGoodToAlign(void)
         gpsVertVelFail = false;
     }
     if (gpsVertVelFail) {
-        hal.util->snprintf(prearm_fail_string,
-                           sizeof(prearm_fail_string),
-                           "GPS vertical speed %.2fm/s (needs %.2f)", (double)fabsf(gpsVertVelFilt),(double)_gpsVertSpdLim);
         gpsCheckStatus.flags.bad_vert_vel = true;
     } else {
         gpsCheckStatus.flags.bad_vert_vel = false;
@@ -5408,9 +5384,6 @@ bool NavEKF::calcGpsGoodToAlign(void)
         gpsHorizVelFail = false;
     }
     if (gpsHorizVelFail) {
-        hal.util->snprintf(prearm_fail_string,
-                           sizeof(prearm_fail_string),
-                           "GPS horizontal speed %.2fm/s (needs %.2f)", (double)gpsDriftNE,(double)_gpsHorizSpdLim);
         gpsCheckStatus.flags.bad_horiz_vel = true;
     } else {
         gpsCheckStatus.flags.bad_horiz_vel = false;
@@ -5426,7 +5399,6 @@ bool NavEKF::calcGpsGoodToAlign(void)
 
     if (lastGpsVelFail_ms == 0) {
         // first time through, start with a failure
-        hal.util->snprintf(prearm_fail_string, sizeof(prearm_fail_string), "EKF warmup");
         lastGpsVelFail_ms = imuSampleTime_ms;
     }
 
